@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Worm Simulation</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        canvas {
+            border: 1px solid black;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="wormCanvas" width="800" height="600"></canvas>
+    <script src="/output/wormworx.js"></script>
+    <script>
+        createWormWorxModule().then(function(Module) {
+            const canvas = document.getElementById('wormCanvas');
+            const ctx = canvas.getContext('2d');
+
+            const worm = new Module.WormWorx();
+            let salt_stimulus = 0.0;
+            let mouseX = 0;
+            let mouseY = 0;
+            let _scale = 50000;
+
+            canvas.addEventListener('mousemove', function(event) {
+                const rect = canvas.getBoundingClientRect();
+                mouseX = event.clientX - rect.left;
+                mouseY = event.clientY - rect.top;
+            });
+
+            function distance(x1, y1, x2, y2) {
+                return Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+            }
+
+            function drawWorm(body) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = 'green';
+                ctx.save();
+                // translate canvas to center
+                ctx.translate(canvas.width / 2, canvas.height / 2);
+                // scale canvas to fit the worm (0.0001, 0.0001)
+                ctx.scale(_scale, _scale);
+
+                for (let i = 0; i < body.size(); i += 3) {
+                    ctx.beginPath();
+                    ctx.arc(body.get(i), body.get(i + 1), (1.0 / _scale) * 2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                ctx.restore();
+            }
+
+            function updateAndDraw() {
+                const body = worm.getBody();
+                const bx = body.get(0);
+                const by = body.get(1);
+
+                const scale = 1.0 / _scale; // Adjust scale to match the canvas scaling
+                const cx = (mouseX - canvas.width / 2) * scale;
+                const cy = (mouseY - canvas.height / 2) * scale;
+                
+                salt_stimulus = distance(cx, -cy, bx, by);
+                worm.step(salt_stimulus);
+                drawWorm(body);
+
+                requestAnimationFrame(updateAndDraw);
+            }
+
+            updateAndDraw();
+        });
+    </script>
+</body>
+</html>
