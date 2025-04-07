@@ -90,10 +90,10 @@
                 const viewHeight = canvas.height * scale;
                 
                 // Check boundaries and update camera offset
-                if (bx > cameraX + viewWidth / 2) { cameraX = bx - viewWidth / 2; }
-                if (bx < cameraX - viewWidth / 2) { cameraX = bx + viewWidth / 2; }
-                if (by > cameraY + viewHeight / 2) { cameraY = by - viewHeight / 2; }
-                if (by < cameraY - viewHeight / 2) { cameraY = by + viewHeight / 2; }
+                if (bx > cameraX + viewWidth / 2) { cameraX = bx - viewWidth / 2; saltStimulusCooldown(); }
+                if (bx < cameraX - viewWidth / 2) { cameraX = bx + viewWidth / 2; saltStimulusCooldown(); }
+                if (by > cameraY + viewHeight / 2) { cameraY = by - viewHeight / 2; saltStimulusCooldown(); }
+                if (by < cameraY - viewHeight / 2) { cameraY = by + viewHeight / 2; saltStimulusCooldown(); }
 
                 // Calculate mouse position in world coordinates
                 const mouseWorldX = (mouseX - canvas.width / 2) * scale + cameraX;
@@ -116,6 +116,14 @@
                 drawWorm(body);
 
                 requestAnimationFrame(updateAndDraw);
+            }
+
+            function saltStimulusCooldown() {
+                saltStimulusMultiplier = 0.5;
+                clearTimeout(saltTimeout);
+                saltTimeout =setTimeout(function() {
+                    saltStimulusMultiplier = 1.0;
+                }, 100);
             }
 
             updateAndDraw();
