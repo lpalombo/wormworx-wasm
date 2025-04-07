@@ -186,12 +186,22 @@
             }
 
             function setRandomWeights(_worm) {
-                const weights = new Module.VectorDouble();
-                for (let i = 0; i < steeringNames.length; i++) {
-                    weights.push_back(Math.random());
+                let weights = null;
+                try {
+                    weights = new Module.VectorDouble();
+                    for (let i = 0; i < steeringNames.length; i++) {
+                        weights.push_back(Math.random());
+                    }
+                    _worm.setSteeringSynapseWeights(weights);
+                } catch (e) {
+                    console.error("Error setting weights:", e);
+                } finally {
+                    // Always clean up the vector to prevent memory leaks
+                    if (weights) {
+                        weights.delete();
+                        weights = null;
+                    }
                 }
-                _worm.setSteeringSynapseWeights(weights);
-                weights.delete(); // Important: free the memory
             }
 
             function updateAndDraw() {
