@@ -88,12 +88,16 @@
                 const scale = 1.0 / _scale; // Adjust scale to match the canvas scaling
                 const viewWidth = canvas.width * scale;
                 const viewHeight = canvas.height * scale;
+
+                saltStimulusMultiplier += 0.01;
+                saltStimulusMultiplier = Math.min(saltStimulusMultiplier, 1.0);
                 
                 // Check boundaries and update camera offset
-                if (bx > cameraX + viewWidth / 2) { cameraX = bx - viewWidth / 2; saltStimulusCooldown(); }
-                if (bx < cameraX - viewWidth / 2) { cameraX = bx + viewWidth / 2; saltStimulusCooldown(); }
-                if (by > cameraY + viewHeight / 2) { cameraY = by - viewHeight / 2; saltStimulusCooldown(); }
-                if (by < cameraY - viewHeight / 2) { cameraY = by + viewHeight / 2; saltStimulusCooldown(); }
+                if (bx > cameraX + viewWidth / 2) { cameraX = bx - viewWidth / 2; saltStimulusMultiplier *= 0.9; }
+                if (bx < cameraX - viewWidth / 2) { cameraX = bx + viewWidth / 2; saltStimulusMultiplier *= 0.9; }
+                if (by > cameraY + viewHeight / 2) { cameraY = by - viewHeight / 2; saltStimulusMultiplier *= 0.9; }
+                if (by < cameraY - viewHeight / 2) { cameraY = by + viewHeight / 2; saltStimulusMultiplier *= 0.9; }
+
 
                 // Calculate mouse position in world coordinates
                 const mouseWorldX = (mouseX - canvas.width / 2) * scale + cameraX;
@@ -117,15 +121,7 @@
 
                 requestAnimationFrame(updateAndDraw);
             }
-
-            function saltStimulusCooldown() {
-                saltStimulusMultiplier = 0.5;
-                clearTimeout(saltTimeout);
-                saltTimeout =setTimeout(function() {
-                    saltStimulusMultiplier = 1.0;
-                }, 100);
-            }
-
+            
             updateAndDraw();
         });
     </script>
