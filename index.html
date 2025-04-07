@@ -6,21 +6,30 @@
     <title>WormWorx Wasm</title>
     <style>
         body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
             margin: 0;
-            background-color: #f0f0f0;
+            overflow: hidden;
         }
         canvas {
-            border: 1px solid black;
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: #f0f0f0;
         }
         #details {
             position: absolute;
             top: 10px;
             left: 10px;
-            color: black;
+            color: purple;
+            z-index: 1000;
+            font-family: monospace;
+            opacity: 0.8;
+            line-height: 1.5;
+        }
+        #details p {
+            margin: 0;
         }
     </style>
 </head>
@@ -28,13 +37,8 @@
     <div id="details">
         <p>Salt stimulus: <span id="saltStimulus">0.0</span></p>
         <p>Salt stimulus multiplier: <span id="saltStimulusMultiplier">1.0</span></p>
-        <p>Mouse distance: <span id="mouseDistance">0</span></p>
-        <p>Mouse X: <span id="mouseX">0</span></p>
-        <p>Mouse Y: <span id="mouseY">0</span></p>
-        <p>Bx: <span id="bx">0</span></p>
-        <p>By: <span id="by">0</span></p>
     </div>
-    <canvas id="wormCanvas" width="800" height="600"></canvas>
+    <canvas id="wormCanvas"></canvas>
     <script src="wormworx.js"></script>
     <script>
         createWormWorxModule().then(function(Module) {
@@ -46,16 +50,30 @@
             let mouseDistance = 0;
             let mouseX = 0;
             let mouseY = 0;
-            let _scale = 50000;
+            let _scale = 100000;
             let cameraX = 0; // Camera offset X
             let cameraY = 0; // Camera offset Y
             let saltTimeout = null;
             let saltStimulusMultiplier = 1.0;
 
+            // Function to resize the canvas
+            function resizeCanvas() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                // You might need to redraw or reinitialize things here if needed
+                // For now, the updateAndDraw loop will handle redrawing
+            }
+
+            // Initial resize
+            resizeCanvas();
+
+            // Add resize listener
+            window.addEventListener('resize', resizeCanvas);
+
             canvas.addEventListener('mousemove', function(event) {
-                const rect = canvas.getBoundingClientRect();
-                mouseX = event.clientX - rect.left;
-                mouseY = event.clientY - rect.top;
+                const rect = canvas.getBoundingClientRect(); // rect is now {0, 0, width, height} due to CSS
+                mouseX = event.clientX; // No need for rect.left offset
+                mouseY = event.clientY; // No need for rect.top offset
             });
 
             function distance(x1, y1, x2, y2) {
@@ -73,7 +91,7 @@
 
                 for (let i = 0; i < body.size(); i += 3) {
                     ctx.beginPath();
-                    ctx.arc(body.get(i), body.get(i + 1), (1.0 / _scale) * 2, 0, Math.PI * 2);
+                    ctx.arc(body.get(i), body.get(i + 1), (1.0 / _scale) * 4, 0, Math.PI * 2);
                     ctx.fill();
                 }
 
@@ -109,12 +127,6 @@
 
                 document.getElementById('saltStimulus').innerText = salt_stimulus.toFixed(6);
                 document.getElementById('saltStimulusMultiplier').innerText = saltStimulusMultiplier.toFixed(2);
-                document.getElementById('mouseX').innerText = mouseWorldX * _scale;
-                document.getElementById('mouseY').innerText = mouseWorldY * _scale;
-                document.getElementById('mouseDistance').innerText = mouseDistance;
-                //bx
-                document.getElementById('bx').innerText = bx * _scale;
-                document.getElementById('by').innerText = by * _scale;
 
                 worm.step(salt_stimulus);
                 drawWorm(body);
