@@ -38,12 +38,21 @@
         <p>Salt stimulus: <span id="saltStimulus">0.0</span></p>
         <p>Salt stimulus multiplier: <span id="saltStimulusMultiplier">1.0</span></p>
     </div>
-    <canvas id="wormCanvas"></canvas>
+    <canvas id="canvas"></canvas>
     <script src="wormworx.js"></script>
     <script>
         createWormWorxModule().then(function(Module) {
-            const canvas = document.getElementById('wormCanvas');
+            const canvas = document.getElementById('canvas');
             const ctx = canvas.getContext('2d');
+
+            // Check if debug parameter is present in URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const debugMode = urlParams.has('debug');
+            
+            // Hide details panel if not in debug mode
+            if (!debugMode) {
+                document.getElementById('details').style.display = 'none';
+            }
 
             const worm = new Module.WormWorx();
             let salt_stimulus = 0.0;
@@ -51,29 +60,30 @@
             let mouseX = 0;
             let mouseY = 0;
             let _scale = 100000;
-            let cameraX = 0; // Camera offset X
-            let cameraY = 0; // Camera offset Y
+            let cameraX = 0;
+            let cameraY = 0;
             let saltTimeout = null;
             let saltStimulusMultiplier = 1.0;
+            const steeringNames = ['ASEL', 'ASER', 'AIYL', 'AIYR', 'AIZL', 'AIZR', 'SMBD', 'SMBV'];
+                
+            setRandomWeights(worm);
 
-            // Function to resize the canvas
             function resizeCanvas() {
                 canvas.width = window.innerWidth;
                 canvas.height = window.innerHeight;
-                // You might need to redraw or reinitialize things here if needed
-                // For now, the updateAndDraw loop will handle redrawing
             }
 
-            // Initial resize
             resizeCanvas();
-
-            // Add resize listener
             window.addEventListener('resize', resizeCanvas);
 
             canvas.addEventListener('mousemove', function(event) {
-                const rect = canvas.getBoundingClientRect(); // rect is now {0, 0, width, height} due to CSS
-                mouseX = event.clientX; // No need for rect.left offset
-                mouseY = event.clientY; // No need for rect.top offset
+                const rect = canvas.getBoundingClientRect();
+                mouseX = event.clientX;
+                mouseY = event.clientY;
+            });
+
+            canvas.addEventListener('click', function(event) {
+                setRandomWeights(worm);
             });
 
             function distance(x1, y1, x2, y2) {
@@ -81,12 +91,9 @@
             }
 
             function drawWorm(body) {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
                 ctx.fillStyle = 'green';
                 ctx.save();
-                // translate canvas to center, adjusted by camera offset
                 ctx.translate(canvas.width / 2 - cameraX * _scale, canvas.height / 2 - cameraY * _scale);
-                // scale canvas to fit the worm (0.0001, 0.0001)
                 ctx.scale(_scale, _scale);
 
                 for (let i = 0; i < body.size(); i += 3) {
@@ -98,38 +105,134 @@
                 ctx.restore();
             }
 
+            function drawNeurons() {
+                // Get neuron activations
+                const steeringActivations = worm.getSteeringActivations();
+                const dorsalMotorActivations = worm.getDorsalMotorActivations();
+                const ventralMotorActivations = worm.getVentralMotorActivations();
+
+                // Draw steering neurons
+                const startX = 50;
+                const startY = 50;
+                const spacing = 40;
+                const neuronSize = 20;
+
+                ctx.font = '12px monospace';
+                ctx.textAlign = 'right';
+                ctx.textBaseline = 'middle';
+
+                // Draw steering neurons
+                for (let i = 0; i < steeringActivations.size(); i++) {
+                    const activation = steeringActivations.get(i);
+                    const y = startY + i * spacing;
+                    
+                    // Draw neuron name
+                    ctx.fillStyle = 'black';
+                    ctx.fillText(steeringNames[i], startX - 10, y);
+
+                    // Draw neuron circle
+                    ctx.beginPath();
+                    ctx.arc(startX + neuronSize, y, neuronSize, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(0, 0, 255, ${activation})`;
+                    ctx.fill();
+                    ctx.strokeStyle = 'black';
+                    ctx.stroke();
+
+                    // Draw activation value
+                    ctx.fillStyle = 'black';
+                    ctx.textAlign = 'left';
+                    ctx.fillText(activation.toFixed(2), startX + neuronSize * 2 + 10, y);
+                    ctx.textAlign = 'right';
+                }
+
+                // Draw motor neurons
+                const motorStartX = 250;
+                const motorStartY = 50;
+                const motorSpacing = 20;
+
+                // Draw dorsal motor neurons
+                ctx.fillStyle = 'black';
+                ctx.textAlign = 'center';
+                ctx.fillText('Dorsal Motor Neurons', motorStartX + 100, motorStartY - 20);
+
+                for (let i = 0; i < dorsalMotorActivations.size(); i++) {
+                    const activation = dorsalMotorActivations.get(i);
+                    const x = motorStartX + (i % 12) * motorSpacing;
+                    const y = motorStartY + Math.floor(i / 12) * motorSpacing;
+
+                    ctx.beginPath();
+                    ctx.arc(x, y, 8, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(255, 0, 0, ${activation})`;
+                    ctx.fill();
+                    ctx.strokeStyle = 'black';
+                    ctx.stroke();
+                }
+
+                // Draw ventral motor neurons
+                ctx.fillText('Ventral Motor Neurons', motorStartX + 100, motorStartY + 100);
+
+                for (let i = 0; i < ventralMotorActivations.size(); i++) {
+                    const activation = ventralMotorActivations.get(i);
+                    const x = motorStartX + (i % 12) * motorSpacing;
+                    const y = motorStartY + 120 + Math.floor(i / 12) * motorSpacing;
+
+                    ctx.beginPath();
+                    ctx.arc(x, y, 8, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(0, 255, 0, ${activation})`;
+                    ctx.fill();
+                    ctx.strokeStyle = 'black';
+                    ctx.stroke();
+                }
+            }
+
+            function setRandomWeights(_worm) {
+                const weights = new Module.VectorDouble();
+                for (let i = 0; i < steeringNames.length; i++) {
+                    weights.push_back(Math.random());
+                }
+                _worm.setSteeringSynapseWeights(weights);
+                weights.delete(); // Important: free the memory
+            }
+
             function updateAndDraw() {
                 const body = worm.getBody();
                 const bx = body.get(0);
                 const by = body.get(1);
 
-                const scale = 1.0 / _scale; // Adjust scale to match the canvas scaling
+                const scale = 1.0 / _scale;
                 const viewWidth = canvas.width * scale;
                 const viewHeight = canvas.height * scale;
 
                 saltStimulusMultiplier += 0.01;
                 saltStimulusMultiplier = Math.min(saltStimulusMultiplier, 1.0);
                 
-                // Check boundaries and update camera offset
                 if (bx > cameraX + viewWidth / 2) { cameraX = bx - viewWidth / 2; saltStimulusMultiplier *= 0.9; }
                 if (bx < cameraX - viewWidth / 2) { cameraX = bx + viewWidth / 2; saltStimulusMultiplier *= 0.9; }
                 if (by > cameraY + viewHeight / 2) { cameraY = by - viewHeight / 2; saltStimulusMultiplier *= 0.9; }
                 if (by < cameraY - viewHeight / 2) { cameraY = by + viewHeight / 2; saltStimulusMultiplier *= 0.9; }
 
-
-                // Calculate mouse position in world coordinates
                 const mouseWorldX = (mouseX - canvas.width / 2) * scale + cameraX;
                 const mouseWorldY = (mouseY - canvas.height / 2) * scale + cameraY;
 
-                // Calculate salt stimulus based on world coordinates
-                // Assuming simulation's Y increases upwards, while canvas Y increases downwards
-                salt_stimulus = (1 / distance(bx, by, mouseWorldX, mouseWorldY)) * scale * saltStimulusMultiplier; 
+                salt_stimulus = (1 / distance(bx, by, mouseWorldX, mouseWorldY)) * scale * saltStimulusMultiplier;
 
-                document.getElementById('saltStimulus').innerText = salt_stimulus.toFixed(6);
-                document.getElementById('saltStimulusMultiplier').innerText = saltStimulusMultiplier.toFixed(2);
+                if (debugMode) {
+                    document.getElementById('saltStimulus').innerText = salt_stimulus.toFixed(6);
+                    document.getElementById('saltStimulusMultiplier').innerText = saltStimulusMultiplier.toFixed(2);
+                }
 
                 worm.step(salt_stimulus);
+                
+                // Clear the entire canvas
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Draw worm
                 drawWorm(body);
+                
+                // Only draw neurons in debug mode
+                if (debugMode) {
+                    drawNeurons();
+                }
 
                 requestAnimationFrame(updateAndDraw);
             }
