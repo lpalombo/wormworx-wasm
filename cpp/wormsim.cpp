@@ -149,7 +149,7 @@ double ventral_salt_stimulus, dorsal_salt_stimulus, salt_stimulus_marker;
 double head_angle_tracker[2];
 #define ASER_TRIGGER_THRESHOLD 1
 int aser_trigger_count;
-void set_smb_muscle_amplification();
+void set_smb_muscle_amplification(bool boundary_collision);
 // #define BYPASS_INTERNEURONS 1
 
 // IDA variables (Copied from Sundials examples)
@@ -661,7 +661,7 @@ void update_steering_neurons(double salt_stimulus)
                     }
                 }
 
-                set_smb_muscle_amplification();
+                set_smb_muscle_amplification(boundary_collision);
 			} else {
                 if (smb_muscle_amplifier_control == STABILIZE){
                     smb_muscle_amplifier_control = NEUTRAL;
@@ -724,7 +724,7 @@ void update_steering_neurons(double salt_stimulus)
                     }
                 }
 
-                set_smb_muscle_amplification();
+                set_smb_muscle_amplification(boundary_collision);
 			} else {
                 if (smb_muscle_amplifier_control == STABILIZE){
                     smb_muscle_amplifier_control = NEUTRAL;
@@ -744,13 +744,33 @@ void update_steering_neurons(double salt_stimulus)
 }
 
 // Set SMB muscle amplification.
-void set_smb_muscle_amplification() {
+void set_smb_muscle_amplification(bool boundary_collision) {
+    // Default amplification values
     dorsal_smb_muscle_amplifier = 1.0;
     ventral_smb_muscle_amplifier = 1.0;
+    
+    // Normal sensory integration for AIY neurons
     aiyl.activation = (asel.activation * asel0_weight) + (aser.activation * aser0_weight);
     aiyr.activation = (asel.activation * asel1_weight) + (aser.activation * aser1_weight);
+    
+    // Normal AIZ activation from AIY inputs
     aizl.activation = aiyl.activation * aiyl0_weight;
     aizr.activation = aiyr.activation * aiyr0_weight;
+    
+    // Check for boundary collision to override normal behavior
+    if (boundary_collision) {
+        // Directly boost AIZ neurons to trigger a strong turning response
+        aizl.activation = 0.9;  // Strong activation for aizl
+        aizr.activation = 0.7;  // Slightly weaker activation for aizr to create asymmetry
+        
+        // Create strong ventral bias to induce a turn
+        dorsal_smb_muscle_amplifier = 0.3;  // Reduce dorsal muscle activation
+        ventral_smb_muscle_amplifier = 1.5;  // Increase ventral muscle activation
+        
+        return;  // Exit early with collision response values set
+    }
+    
+    // If no collision, proceed with normal muscle control
     if (smb_muscle_amplifier_control == DORSAL) {
         dorsal_smb_muscle_amplifier =
                 (aizl.activation * aizl0_weight) + (aizr.activation * aizr0_weight);
@@ -759,23 +779,6 @@ void set_smb_muscle_amplification() {
                 (aizl.activation * aizl1_weight) + (aizr.activation * aizr1_weight);
     }
 
-#ifdef BYPASS_INTERNEURONS
-    dorsal_smb_muscle_amplifier = 1.0;
-    ventral_smb_muscle_amplifier = 1.0;
-    if (smb_muscle_amplifier_control == DORSAL) {
-        if (asel.activation > 0.0) {
-            dorsal_smb_muscle_amplifier = ASEL_SMB_MUSCLE_AMPLIFIER;
-        } else if (aser.activation > 0.0) {
-            dorsal_smb_muscle_amplifier = ASER_SMB_MUSCLE_AMPLIFIER;
-        }
-    } else if (smb_muscle_amplifier_control == VENTRAL) {
-        if (asel.activation > 0.0) {
-            ventral_smb_muscle_amplifier = ASEL_SMB_MUSCLE_AMPLIFIER;
-        } else if (aser.activation > 0.0) {
-            ventral_smb_muscle_amplifier = ASER_SMB_MUSCLE_AMPLIFIER;
-        }
-    }
-#endif
 	smbd.activation = dorsal_smb_muscle_amplifier;
 	smbv.activation = ventral_smb_muscle_amplifier;
 }
