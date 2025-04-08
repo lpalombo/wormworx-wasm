@@ -201,6 +201,11 @@
                     ctx.strokeStyle = 'black';
                     ctx.stroke();
                 }
+
+                // release memory
+                steeringActivations.delete();
+                dorsalMotorActivations.delete();
+                ventralMotorActivations.delete();
             }
 
             function setRandomWeights(_worm) {
@@ -275,6 +280,9 @@
                 if (debugMode) {
                     drawNeurons();
                 }
+
+                // release memory
+                body.delete();
 
                 requestAnimationFrame(updateAndDraw);
             }
