@@ -20,13 +20,14 @@
         }
         #details {
             position: absolute;
-            top: 10px;
-            left: 10px;
+            bottom: 10px;
+            right: 10px;
             color: purple;
             z-index: 1000;
             font-family: monospace;
             opacity: 0.8;
             line-height: 1.5;
+            display: none;
         }
         #details p {
             margin: 0;
@@ -50,8 +51,8 @@
             const debugMode = urlParams.has('debug');
             
             // Hide details panel if not in debug mode
-            if (!debugMode) {
-                document.getElementById('details').style.display = 'none';
+            if (debugMode) {
+                document.getElementById('details').style.display = 'block';
             }
 
             const worm = new Module.WormWorx();
@@ -235,6 +236,8 @@
                 
                 // Clear the entire canvas
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
                 
                 // Draw worm
                 drawWorm(body);
