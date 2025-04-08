@@ -141,6 +141,7 @@ double head_angle_tracker[2];
 #define ASER_TRIGGER_THRESHOLD 2
 int aser_trigger_count;
 void set_smb_muscle_amplification();
+#define BYPASS_INTERNEURONS 1
 
 // IDA variables (Copied from Sundials examples)
 void *mem;

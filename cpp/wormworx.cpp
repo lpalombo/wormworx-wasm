@@ -4,11 +4,11 @@
 
 // Define constants if they're not in wormsim.h
 #ifndef NUM_STEERING_NEURONS
-#define NUM_STEERING_NEURONS 6  // Adjust this value as needed
+#define NUM_STEERING_NEURONS 8
 #endif
 
 #ifndef NUM_MOTOR_NEURONS
-#define NUM_MOTOR_NEURONS 24  // Adjust this value as needed
+#define NUM_MOTOR_NEURONS 24
 #endif
 
 #ifndef NUM_MUSCLES

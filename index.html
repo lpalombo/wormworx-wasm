@@ -65,8 +65,10 @@
             let cameraY = 0;
             let saltTimeout = null;
             let saltStimulusMultiplier = 1.0;
-            const steeringNames = ['ASEL', 'ASER', 'AIYL', 'AIYR', 'AIZL', 'AIZR', 'SMBD', 'SMBV'];
-                
+
+            const steeringWeightNames = ['ASEL0', 'ASEL1', 'ASER0', 'ASER1', 'AIYL0', 'AIYR0', 'AIZL0', 'AIZL1', 'AIZR0', 'AIZR1'];
+            const steeringActivationNames = ['ASEL', 'ASER', 'AIYL', 'AIYR', 'AIZL', 'AIZR', 'SMBD', 'SMBV'];
+
             setRandomWeights(worm);
 
             function resizeCanvas() {
@@ -129,7 +131,7 @@
                     
                     // Draw neuron name
                     ctx.fillStyle = 'black';
-                    ctx.fillText(steeringNames[i], startX - 10, y);
+                    ctx.fillText(steeringActivationNames[i], startX - 10, y);
 
                     // Draw neuron circle
                     ctx.beginPath();
@@ -170,6 +172,7 @@
                 }
 
                 // Draw ventral motor neurons
+                ctx.fillStyle = 'black';
                 ctx.fillText('Ventral Motor Neurons', motorStartX + 100, motorStartY + 100);
 
                 for (let i = 0; i < ventralMotorActivations.size(); i++) {
@@ -190,7 +193,7 @@
                 let weights = null;
                 try {
                     weights = new Module.VectorDouble();
-                    for (let i = 0; i < steeringNames.length; i++) {
+                    for (let i = 0; i < steeringWeightNames.length; i++) {
                         weights.push_back(Math.random());
                     }
                     _worm.setSteeringSynapseWeights(weights);
@@ -214,18 +217,18 @@
                 const viewWidth = canvas.width * scale;
                 const viewHeight = canvas.height * scale;
 
-                saltStimulusMultiplier += 0.01;
-                saltStimulusMultiplier = Math.min(saltStimulusMultiplier, 1.0);
+                saltStimulusMultiplier -= 0.01;
+                saltStimulusMultiplier = Math.min(Math.max(saltStimulusMultiplier, 1), 10);
                 
-                if (bx > cameraX + viewWidth / 2) { cameraX = bx - viewWidth / 2; saltStimulusMultiplier *= 0.9; }
-                if (bx < cameraX - viewWidth / 2) { cameraX = bx + viewWidth / 2; saltStimulusMultiplier *= 0.9; }
-                if (by > cameraY + viewHeight / 2) { cameraY = by - viewHeight / 2; saltStimulusMultiplier *= 0.9; }
-                if (by < cameraY - viewHeight / 2) { cameraY = by + viewHeight / 2; saltStimulusMultiplier *= 0.9; }
+                if (bx > cameraX + viewWidth / 2) { cameraX = bx - viewWidth / 2; saltStimulusMultiplier *= 1.1; }
+                if (bx < cameraX - viewWidth / 2) { cameraX = bx + viewWidth / 2; saltStimulusMultiplier *= 1.1; }
+                if (by > cameraY + viewHeight / 2) { cameraY = by - viewHeight / 2; saltStimulusMultiplier *= 1.1; }
+                if (by < cameraY - viewHeight / 2) { cameraY = by + viewHeight / 2; saltStimulusMultiplier *= 1.1; }
 
                 const mouseWorldX = (mouseX - canvas.width / 2) * scale + cameraX;
                 const mouseWorldY = (mouseY - canvas.height / 2) * scale + cameraY;
 
-                salt_stimulus = (1 / distance(bx, by, mouseWorldX, mouseWorldY)) * scale * saltStimulusMultiplier;
+                salt_stimulus = distance(bx, by, mouseWorldX, mouseWorldY) * saltStimulusMultiplier;
 
                 if (debugMode) {
                     document.getElementById('saltStimulus').innerText = salt_stimulus.toFixed(6);
