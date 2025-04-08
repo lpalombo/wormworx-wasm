@@ -28,6 +28,9 @@ int init();
 // Set steering neuron synapse weight.
 void set_steering_synapse_weight(int synapse, double weight);
 
+// Set screen boundaries for collision detection
+void set_screen_boundaries(double min_x, double max_x, double min_y, double max_y);
+
 // Step simulation with salt sensor stimulus.
 void step(double salt_stimulus);
 

@@ -111,6 +111,15 @@ realtype G     = 0.0;
 // Steering.
 #define ASER_ACTIVATION 50.0
 #define ASEL_ACTIVATION 5.0
+// Boundary collision response
+#define BOUNDARY_COLLISION_MULTIPLIER 3.0
+// Screen boundary limits
+realtype screen_min_x = -10.0;
+realtype screen_max_x = 10.0;
+realtype screen_min_y = -10.0;
+realtype screen_max_y = 10.0;
+bool boundary_collision = false;
+
 struct SteeringNeuron
 {
 	realtype I;
@@ -138,10 +147,10 @@ double ventral_smb_muscle_amplifier;
 enum { NEUTRAL=0, STABILIZE=1, DORSAL=2, VENTRAL=3 } smb_muscle_amplifier_control;
 double ventral_salt_stimulus, dorsal_salt_stimulus, salt_stimulus_marker;
 double head_angle_tracker[2];
-#define ASER_TRIGGER_THRESHOLD 2
+#define ASER_TRIGGER_THRESHOLD 1
 int aser_trigger_count;
 void set_smb_muscle_amplification();
-#define BYPASS_INTERNEURONS 1
+// #define BYPASS_INTERNEURONS 1
 
 // IDA variables (Copied from Sundials examples)
 void *mem;
@@ -201,6 +210,14 @@ void set_steering_synapse_weight(int synapse, double weight)
 			aizr1_weight = weight;
 			break;
 	}
+}
+
+// Set screen boundaries for collision detection.
+void set_screen_boundaries(double min_x, double max_x, double min_y, double max_y) {
+    screen_min_x = min_x;
+    screen_max_x = max_x;
+    screen_min_y = min_y;
+    screen_max_y = max_y;
 }
 
 // Get steering neuron activation.
@@ -583,6 +600,19 @@ void update_neurons(double salt_stimulus)
 // Update steering neurons.
 void update_steering_neurons(double salt_stimulus)
 {
+    // Check for boundary collision
+    boundary_collision = false;
+    for (int i = 0; i < NBAR; i++) {
+        realtype x = yval[i*3];
+        realtype y = yval[i*3+1];
+        
+        if (x <= screen_min_x || x >= screen_max_x || 
+            y <= screen_min_y || y >= screen_max_y) {
+            boundary_collision = true;
+            break;
+        }
+    }
+
 	// Dorsal head swing complete?
     if (segment_angles[0] >= head_angle_tracker[0] &&
         head_angle_tracker[0] <= head_angle_tracker[1]) {
@@ -614,6 +644,23 @@ void update_steering_neurons(double salt_stimulus)
 				} else {
                     aser_trigger_count = 0;
                 }
+
+                // Apply boundary collision response
+                if (boundary_collision) {
+                    if (smb_muscle_amplifier_control == DORSAL || smb_muscle_amplifier_control == VENTRAL) {
+                        // Amplify the current activation - either ASEL or ASER
+                        if (asel.activation > 0.0) {
+                            asel.activation *= BOUNDARY_COLLISION_MULTIPLIER;
+                        } else if (aser.activation > 0.0) {
+                            aser.activation *= BOUNDARY_COLLISION_MULTIPLIER;
+                        }
+                    } else {
+                        // If no current direction, force a dorsal turn
+                        smb_muscle_amplifier_control = DORSAL;
+                        aser.activation = ASER_ACTIVATION * BOUNDARY_COLLISION_MULTIPLIER;
+                    }
+                }
+
                 set_smb_muscle_amplification();
 			} else {
                 if (smb_muscle_amplifier_control == STABILIZE){
@@ -660,6 +707,23 @@ void update_steering_neurons(double salt_stimulus)
                 } else {
                     aser_trigger_count = 0;
                 }
+
+                // Apply boundary collision response
+                if (boundary_collision) {
+                    if (smb_muscle_amplifier_control == DORSAL || smb_muscle_amplifier_control == VENTRAL) {
+                        // Amplify the current activation - either ASEL or ASER
+                        if (asel.activation > 0.0) {
+                            asel.activation *= BOUNDARY_COLLISION_MULTIPLIER;
+                        } else if (aser.activation > 0.0) {
+                            aser.activation *= BOUNDARY_COLLISION_MULTIPLIER;
+                        }
+                    } else {
+                        // If no current direction, force a ventral turn
+                        smb_muscle_amplifier_control = VENTRAL;
+                        aser.activation = ASER_ACTIVATION * BOUNDARY_COLLISION_MULTIPLIER;
+                    }
+                }
+
                 set_smb_muscle_amplification();
 			} else {
                 if (smb_muscle_amplifier_control == STABILIZE){
@@ -712,6 +776,8 @@ void set_smb_muscle_amplification() {
         }
     }
 #endif
+	smbd.activation = dorsal_smb_muscle_amplifier;
+	smbv.activation = ventral_smb_muscle_amplifier;
 }
 
 // Update the stretch receptors (for each segment). These

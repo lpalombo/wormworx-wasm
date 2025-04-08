@@ -31,6 +31,10 @@ public:
         }
     }
 
+    void setScreenBoundaries(double minX, double maxX, double minY, double maxY) {
+        set_screen_boundaries(minX, maxX, minY, maxY);
+    }
+
     void step(double salt_stimulus) {
         ::step(salt_stimulus);
     }
@@ -99,6 +103,7 @@ EMSCRIPTEN_BINDINGS(wormworx) {
     emscripten::class_<WormWorx>("WormWorx")
         .constructor<>()
         .function("setSteeringSynapseWeights", &WormWorx::setSteeringSynapseWeights)
+        .function("setScreenBoundaries", &WormWorx::setScreenBoundaries)
         .function("step", &WormWorx::step)
         .function("getSteeringActivations", &WormWorx::getSteeringActivations)
         .function("getDorsalMotorActivations", &WormWorx::getDorsalMotorActivations)

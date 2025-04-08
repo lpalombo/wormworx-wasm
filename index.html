@@ -108,6 +108,20 @@
                 ctx.restore();
             }
 
+            function drawBoundary(minX, maxX, minY, maxY) {
+                ctx.save();
+                ctx.translate(canvas.width / 2 - cameraX * _scale, canvas.height / 2 - cameraY * _scale);
+                ctx.scale(_scale, _scale);
+                
+                ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
+                ctx.lineWidth = 5 / _scale;
+                ctx.beginPath();
+                ctx.rect(minX, minY, maxX - minX, maxY - minY);
+                ctx.stroke();
+                
+                ctx.restore();
+            }
+
             function drawNeurons() {
                 // Get neuron activations
                 const steeringActivations = worm.getSteeringActivations();
@@ -216,6 +230,13 @@
                 const scale = 1.0 / _scale;
                 const viewWidth = canvas.width * scale;
                 const viewHeight = canvas.height * scale;
+                
+                // Set screen boundaries for collision detection
+                const screenMinX = cameraX - viewWidth / 2;
+                const screenMaxX = cameraX + viewWidth / 2;
+                const screenMinY = cameraY - viewHeight / 2;
+                const screenMaxY = cameraY + viewHeight / 2;
+                worm.setScreenBoundaries(screenMinX, screenMaxX, screenMinY, screenMaxY);
 
                 saltStimulusMultiplier -= 0.01;
                 saltStimulusMultiplier = Math.min(Math.max(saltStimulusMultiplier, 1), 10);
@@ -245,6 +266,11 @@
                 // Draw worm
                 drawWorm(body);
                 
+                // Only draw boundary in debug mode
+                if (debugMode) {
+                    drawBoundary(screenMinX, screenMaxX, screenMinY, screenMaxY);
+                }
+
                 // Only draw neurons in debug mode
                 if (debugMode) {
                     drawNeurons();
